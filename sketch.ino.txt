@@ -1,0 +1,55 @@
+// soil_dht22_test.ino
+// ESP32 + DHT22 (GPIO 4) + soil moisture sensor / potentiometer (GPIO 34)
+// Prints temperature, humidity and soil readings every 2 seconds.
+
+#include <DHT.h>
+
+#define DHTPIN   4
+#define DHTTYPE  DHT22
+#define SOIL_PIN 34
+#define ADC_MAX  4095
+
+// DRY_VALUE = raw reading in dry air, WET_VALUE = raw reading in water.
+const int DRY_VALUE = 100;
+const int WET_VALUE = 4095;
+
+DHT dht(DHTPIN, DHTTYPE);
+
+void setup() {
+  Serial.begin(115200);
+  dht.begin();
+  Serial.println("Soil + DHT22 test starting...");
+}
+
+void loop() {
+  delay(2000);
+
+  float humidity    = dht.readHumidity();
+  float temperature = dht.readTemperature();
+
+  // Raw soil reading (0 to 4095) and the same reading as a % of full scale
+  int   soilRaw    = analogRead(SOIL_PIN);
+  float rawPercent = (soilRaw * 100.0) / ADC_MAX;
+
+  // Calibrated soil moisture: 0 = dry, 100 = wet
+  int soilPct = map(soilRaw, DRY_VALUE, WET_VALUE, 0, 100);
+  soilPct = constrain(soilPct, 0, 100);
+
+  if (isnan(humidity) || isnan(temperature)) {
+    Serial.println("Failed to read from DHT22");
+  } else {
+    Serial.print("Temperature: ");
+    Serial.print(temperature);
+    Serial.print(" C | Humidity: ");
+    Serial.print(humidity);
+    Serial.print(" % | ");
+  }
+
+  Serial.print("Soil raw: ");
+  Serial.print(soilRaw);
+  Serial.print(" (");
+  Serial.print(rawPercent, 1);
+  Serial.print(" % of range) | Soil moisture: ");
+  Serial.print(soilPct);
+  Serial.println(" %");
+}
